@@ -32,6 +32,11 @@ public class DocumentationOptions
         }
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether to include members only on the type page.
+    /// </summary>
+    public bool IncludeFieldsOnTypePage { get; set; } = DefaultValues.IncludeFieldsOnTypePage;
+
     public bool IncludeSystemNamespace { get; set; } = DefaultValues.IncludeSystemNamespace;
 
     public bool PlaceSystemNamespaceFirst { get; set; } = DefaultValues.PlaceSystemNamespaceFirst;
@@ -150,6 +155,7 @@ public class DocumentationOptions
         public const bool IncludeMemberImplements = true;
         public const bool IncludeMemberInheritedFrom = true;
         public const bool IncludeMemberOverrides = true;
+        public const bool IncludeFieldsOnTypePage = false;
         public const bool MarkObsolete = true;
         public const int MaxDerivedTypes = 5;
         public const bool OmitIEnumerable = true;

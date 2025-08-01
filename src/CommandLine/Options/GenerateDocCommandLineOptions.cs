@@ -144,4 +144,9 @@ public class GenerateDocCommandLineOptions : AbstractGenerateDocCommandLineOptio
         HelpText = "Defines culture that should be used when searching for xml documentation files.",
         MetaValue = "<CULTURE_ID>")]
     public string PreferredCulture { get; set; }
+
+    [Option(
+        longName: "include-field-on-type-page",
+        HelpText = "Include field documentation directly on the type/class page instead of generating separate member pages.")]
+    public bool IncludeFieldsOnTypePage { get; set; }
 }

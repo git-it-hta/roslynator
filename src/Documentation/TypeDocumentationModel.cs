@@ -346,7 +346,7 @@ public sealed class TypeDocumentationModel : IEquatable<TypeDocumentationModel>
         }
     }
 
-    internal IEnumerable<ISymbol> GetMembers(TypeDocumentationParts ignoredParts = TypeDocumentationParts.None)
+    internal IEnumerable<ISymbol> GetMembers(TypeDocumentationParts ignoredParts = TypeDocumentationParts.None, bool includeAsSubPage = true)
     {
         if (!TypeKind.Is(TypeKind.Enum, TypeKind.Delegate))
         {
@@ -356,10 +356,11 @@ public sealed class TypeDocumentationModel : IEquatable<TypeDocumentationModel>
                     yield return result;
             }
 
-            if (IsEnabled(TypeDocumentationParts.Fields))
+            if (IsEnabled(TypeDocumentationParts.Fields) && includeAsSubPage)
             {
                 foreach (IFieldSymbol result in GetFields())
                     yield return result;
+
             }
 
             if (IsEnabled(TypeDocumentationParts.Indexers))
@@ -368,7 +369,7 @@ public sealed class TypeDocumentationModel : IEquatable<TypeDocumentationModel>
                     yield return result;
             }
 
-            if (IsEnabled(TypeDocumentationParts.Properties))
+            if (IsEnabled(TypeDocumentationParts.Properties) && includeAsSubPage)
             {
                 foreach (IPropertySymbol result in GetProperties())
                     yield return result;

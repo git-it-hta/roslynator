@@ -119,6 +119,7 @@ internal class GenerateDocCommand : MSBuildWorkspaceCommand<CommandResult>
             FilesLayout = FilesLayout,
             ScrollToContent = (DocumentationHost == DocumentationHost.GitHub) && Options.ScrollToContent,
             FileSystemFilter = FileSystemFilter,
+            IncludeFieldsOnTypePage = Options.IncludeFieldsOnTypePage,
         };
 
         if (Options.IgnoredNames is not null)

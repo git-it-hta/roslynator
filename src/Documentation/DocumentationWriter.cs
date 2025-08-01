@@ -1072,7 +1072,7 @@ public abstract class DocumentationWriter : IDisposable
         }
         else
         {
-            WriteTable(fields, Resources.FieldsTitle, 2, Resources.FieldTitle, Resources.SummaryTitle, DocumentationDisplayFormats.SimpleDeclaration, containingType: containingType);
+            WriteFieldTable(fields, Resources.FieldsTitle, 2, Resources.FieldTitle, Resources.SummaryTitle, DocumentationDisplayFormats.SimpleDeclaration, containingType: containingType, addLink: Options.IncludeFieldsOnTypePage);
         }
     }
 
@@ -1083,7 +1083,7 @@ public abstract class DocumentationWriter : IDisposable
 
     public virtual void WriteProperties(IEnumerable<IPropertySymbol> properties, INamedTypeSymbol containingType)
     {
-        WriteTable(properties, Resources.PropertiesTitle, 2, Resources.PropertyTitle, Resources.SummaryTitle, DocumentationDisplayFormats.SimpleDeclaration, SymbolDisplayAdditionalMemberOptions.UseItemPropertyName, containingType: containingType);
+        WriteFieldTable(properties, Resources.PropertiesTitle, 2, Resources.PropertyTitle, Resources.SummaryTitle, DocumentationDisplayFormats.SimpleDeclaration, SymbolDisplayAdditionalMemberOptions.UseItemPropertyName, containingType: containingType, addLink: Options.IncludeFieldsOnTypePage);
     }
 
     public virtual void WriteMethods(IEnumerable<IMethodSymbol> methods, INamedTypeSymbol containingType)
@@ -1561,6 +1561,162 @@ public abstract class DocumentationWriter : IDisposable
             WriteString(Resources.CloseParenthesis);
         }
     }
+
+    internal void WriteFieldTable(
+    IEnumerable<ISymbol> symbols,
+    string heading,
+    int headingLevel,
+    string header1,
+    string header2,
+    SymbolDisplayFormat format,
+    SymbolDisplayAdditionalMemberOptions additionalOptions = SymbolDisplayAdditionalMemberOptions.None,
+    bool addLink = true,
+    bool canIncludeInterfaceImplementation = true,
+    INamedTypeSymbol containingType = null)
+    {
+        using (IEnumerator<ISymbol> en = symbols
+            .OrderBy(f => f.ToDisplayString(format, additionalOptions))
+            .GetEnumerator())
+        {
+            if (en.MoveNext())
+            {
+                if (heading is not null)
+                    WriteHeading(headingLevel, heading);
+
+                WriteStartTable(3);
+                WriteStartTableRow();
+                WriteTableCell(header1);
+                WriteTableCell("Type");
+                WriteTableCell(header2);
+                WriteEndTableRow();
+                WriteTableHeaderSeparator();
+
+                do
+                {
+                    ISymbol symbol = en.Current;
+
+                    Debug.Assert(!symbol.IsKind(SymbolKind.Parameter, SymbolKind.TypeParameter), symbol.Kind.ToString());
+
+                    WriteStartTableRow();
+                    WriteStartTableCell();
+
+                    if (symbol.IsKind(SymbolKind.Parameter, SymbolKind.TypeParameter))
+                    {
+                        WriteString(symbol.Name);
+                    }
+                    else if (addLink)
+                    {
+                        WriteLink(symbol, format, additionalOptions);
+                    }
+                    else
+                    {
+                        WriteString(symbol.ToDisplayString(format, additionalOptions));
+                    }
+
+                    WriteEndTableCell();
+
+                    WriteStartTableCell();
+                    var fSymbol = symbol as IFieldSymbol;
+                    if(fSymbol != null)
+                        WriteTypeLink(fSymbol.Type);
+
+                    var pSymbol = symbol as IPropertySymbol;
+                    if (pSymbol != null)
+                        WriteTypeLink(pSymbol.Type);
+
+                    WriteEndTableCell();
+
+                    WriteStartTableCell();
+
+                    WriteObsolete(symbol);
+
+                    bool isInherited = containingType is not null
+                        && !SymbolEqualityComparer.Default.Equals(symbol.ContainingType, containingType);
+
+                    if (symbol.Kind == SymbolKind.Parameter)
+                    {
+                        GetXmlDocumentation(symbol.ContainingSymbol)?.GetElement(WellKnownXmlTags.Param, "name", symbol.Name)?.WriteContentTo(this, inlineOnly: true);
+                    }
+                    else if (symbol.Kind == SymbolKind.TypeParameter)
+                    {
+                        GetXmlDocumentation(symbol.ContainingSymbol)?.GetElement(WellKnownXmlTags.TypeParam, "name", symbol.Name)?.WriteContentTo(this, inlineOnly: true);
+                    }
+                    else
+                    {
+                        ISymbol symbol2 = (isInherited) ? symbol.OriginalDefinition : symbol;
+
+                        GetXmlDocumentation(symbol2)?.GetElement(WellKnownXmlTags.Summary)?.WriteContentTo(this, inlineOnly: true);
+                    }
+
+                    if (isInherited)
+                    {
+                        if (Options.IncludeMemberInheritedFrom)
+                            WriteInheritedFrom(symbol.ContainingType.OriginalDefinition, TypeSymbolDisplayFormats.Name_ContainingTypes_TypeParameters, additionalOptions);
+                    }
+                    else
+                    {
+                        if (Options.IncludeMemberConstantValue
+                            && symbol.Kind == SymbolKind.Field)
+                        {
+                            var fieldSymbol = (IFieldSymbol)symbol;
+                            if (fieldSymbol.HasConstantValue)
+                                WriteConstantValue(fieldSymbol);
+                        }
+                    }
+
+                    WriteEndTableCell();
+                    WriteEndTableRow();
+                }
+                while (en.MoveNext());
+
+                WriteEndTable();
+            }
+        }
+        void WriteConstantValue(IFieldSymbol fieldSymbol)
+        {
+            WriteSpace();
+            WriteString(Resources.OpenParenthesis);
+            WriteString(Resources.ValueTitle);
+            WriteSpace();
+            WriteString(Resources.EqualsSign);
+            WriteSpace();
+
+            if (fieldSymbol.Type.TypeKind == TypeKind.Enum)
+            {
+                OneOrMany<EnumFieldSymbolInfo>.Enumerator en = EnumUtility.GetConstituentFields(fieldSymbol.ConstantValue, (INamedTypeSymbol)fieldSymbol.Type).GetEnumerator();
+
+                if (en.MoveNext())
+                {
+                    while (true)
+                    {
+                        WriteSymbol(en.Current.Symbol, TypeSymbolDisplayFormats.Name);
+
+                        if (en.MoveNext())
+                        {
+                            WriteString(" | ");
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    WriteString(fieldSymbol.ConstantValue.ToString());
+                }
+            }
+            else
+            {
+                WriteString(SymbolDisplay.FormatPrimitive(fieldSymbol.ConstantValue, quoteStrings: true, useHexadecimalNumbers: false));
+            }
+
+            WriteString(Resources.CloseParenthesis);
+        }
+    }
+
+
+
 
     private void WriteInheritedFrom(ISymbol symbol, SymbolDisplayFormat format, SymbolDisplayAdditionalMemberOptions additionalOptions = SymbolDisplayAdditionalMemberOptions.None)
     {

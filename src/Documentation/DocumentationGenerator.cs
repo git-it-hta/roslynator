@@ -934,7 +934,7 @@ public class DocumentationGenerator
     private IEnumerable<DocumentationGeneratorResult> GenerateMembers(TypeDocumentationModel typeModel)
     {
         foreach (IGrouping<string, ISymbol> grouping in typeModel
-            .GetMembers(Options.IgnoredTypeParts)
+            .GetMembers(Options.IgnoredTypeParts, Options.IncludeFieldsOnTypePage)
             .Where(s => !Options.ShouldBeIgnoredByLocation(s))
             .GroupBy(s => s.Name))
         {
